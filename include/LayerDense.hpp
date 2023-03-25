@@ -36,6 +36,7 @@ LayerDense<numInputs, numNeurons>::LayerDense() :
 	std::random_device rd;
 	std::mt19937 gen( rd() );
 	constexpr int maxVal = 100000;
+	// TODO should this be gaussian distribuition?
 	std::uniform_int_distribution<> distr( 0, maxVal );
 	constexpr float oneOverMaxVal = 1.0f / static_cast<float>( maxVal );
 	constexpr float minimizer = 0.3f;
@@ -44,7 +45,7 @@ LayerDense<numInputs, numNeurons>::LayerDense() :
 	{
 		for ( unsigned int col = 0; col < numNeurons; col++ )
 		{
-			float randVal = static_cast<float>(distr(gen)) * oneOverMaxVal * minimizer;
+			float randVal = ( (static_cast<float>(distr(gen)) * oneOverMaxVal * 2.0f) - 1.0f ) * minimizer;
 			m_Weights.at( row, col ) = randVal;
 		}
 	}
