@@ -11,22 +11,21 @@
 
 #include <random>
 
-template <unsigned int numInputs, unsigned int numNeurons>
+template <unsigned int numBatches, unsigned int numInputs, unsigned int numNeurons>
 class LayerDense
 {
 	public:
 		LayerDense();
 
-		template <unsigned int numBatches>
 		Matrix<numBatches, numNeurons> forwardPass (const Matrix<numBatches, numInputs>& in);
 
     private:
 		Matrix<numInputs, numNeurons> 		m_Weights;
-		Matrix<numNeurons, numNeurons> 		m_Biases;
+		Matrix<numBatches, numNeurons> 		m_Biases;
 };
 
-template <unsigned int numInputs, unsigned int numNeurons>
-LayerDense<numInputs, numNeurons>::LayerDense() :
+template <unsigned int numBatches, unsigned int numInputs, unsigned int numNeurons>
+LayerDense<numBatches, numInputs, numNeurons>::LayerDense() :
 // 	m_Weights({ {{0.2f, 0.5f, -0.26f}, {0.8f, -0.91f, -0.27f}, {-0.5f, 0.26f, 0.17f}, {1.0f, -0.5f, 0.87f}} }),
 // 	m_Biases({ {{2.0f, 3.0f, 0.5f}, {2.0f, 3.0f, 0.5f}, {2.0f, 3.0f, 0.5f}} })
 	m_Weights(),
@@ -51,9 +50,8 @@ LayerDense<numInputs, numNeurons>::LayerDense() :
 	}
 }
 
-template <unsigned int numInputs, unsigned int numNeurons>
-template <unsigned int numBatches>
-Matrix<numBatches, numNeurons> LayerDense<numInputs, numNeurons>::forwardPass (const Matrix<numBatches, numInputs>& in)
+template <unsigned int numBatches, unsigned int numInputs, unsigned int numNeurons>
+Matrix<numBatches, numNeurons> LayerDense<numBatches, numInputs, numNeurons>::forwardPass (const Matrix<numBatches, numInputs>& in)
 {
 	Matrix<numBatches, numNeurons> matOut = matrixDotProduct( in, m_Weights ) + m_Biases;
 
