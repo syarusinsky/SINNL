@@ -17,11 +17,11 @@ class ActivationReLU
 	public:
 		ActivationReLU();
 
-		Matrix<numBatches, numInputs> forwardPass (const Matrix<numBatches, numInputs>& in);
+		Matrix<numBatches, numInputs> forwardPass (const Matrix<numBatches, numInputs>& in) const;
 
         void backwardPass (const Matrix<numBatches, numInputs>& gradient);
 
-        Matrix<numBatches, numInputs> getGradient() { return m_Gradient; }
+        Matrix<numBatches, numInputs> getInputsGradient() const { return m_Gradient; }
 
     private:
         Matrix<numBatches, numInputs>   m_Gradient;
@@ -33,7 +33,7 @@ ActivationReLU<numBatches, numInputs>::ActivationReLU()
 }
 
 template <unsigned int numBatches, unsigned int numInputs>
-Matrix<numBatches, numInputs> ActivationReLU<numBatches, numInputs>::forwardPass (const Matrix<numBatches, numInputs>& in)
+Matrix<numBatches, numInputs> ActivationReLU<numBatches, numInputs>::forwardPass (const Matrix<numBatches, numInputs>& in) const
 {
 	Matrix<numBatches, numInputs> matOut = in;
 

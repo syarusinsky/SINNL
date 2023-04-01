@@ -23,13 +23,18 @@ class LayerDense
 		LayerDense();
 		LayerDense(const Matrix<numInputs, numNeurons>& weights, const Matrix<numBatches, numNeurons>& biases);
 
-		Matrix<numBatches, numNeurons> forwardPass (const Matrix<numBatches, numInputs>& in);
+		Matrix<numBatches, numNeurons> forwardPass (const Matrix<numBatches, numInputs>& in) const;
 
 		void backwardPass (const Matrix<numBatches, numInputs>& in, const Matrix<numBatches, numNeurons>& gradient);
 
-		Matrix<numBatches, numInputs> getInputsGradient() { return m_InputsGradient; }
-		Matrix<numInputs, numNeurons> getWeightsGradient() { return m_WeightsGradient; }
-		Matrix<numBatches, numNeurons> getBiasesGradient() { return m_BiasesGradient; }
+		void updateLayer (float learningRate);
+
+		Matrix<numBatches, numInputs> getInputsGradient() const { return m_InputsGradient; }
+		Matrix<numInputs, numNeurons> getWeightsGradient() const { return m_WeightsGradient; }
+		Matrix<numBatches, numNeurons> getBiasesGradient() const { return m_BiasesGradient; }
+
+		Matrix<numInputs, numNeurons> getWeights() const { return m_Weights; }
+		Matrix<numBatches, numNeurons> getBiases() const { return m_Biases; }
 
     private:
 		Matrix<numInputs, numNeurons> 		m_Weights;
@@ -78,7 +83,7 @@ LayerDense<numBatches, numInputs, numNeurons>::LayerDense (const Matrix<numInput
 }
 
 template <unsigned int numBatches, unsigned int numInputs, unsigned int numNeurons>
-Matrix<numBatches, numNeurons> LayerDense<numBatches, numInputs, numNeurons>::forwardPass (const Matrix<numBatches, numInputs>& in)
+Matrix<numBatches, numNeurons> LayerDense<numBatches, numInputs, numNeurons>::forwardPass (const Matrix<numBatches, numInputs>& in) const
 {
 	Matrix<numBatches, numNeurons> matOut = matrixDotProduct( in, m_Weights ) + m_Biases;
 
@@ -105,6 +110,13 @@ void LayerDense<numBatches, numInputs, numNeurons>::backwardPass (const Matrix<n
         }
     }
 	m_BiasesGradient = biasesGradient;
+}
+
+template <unsigned int numBatches, unsigned int numInputs, unsigned int numNeurons>
+void LayerDense<numBatches, numInputs, numNeurons>::updateLayer (float learningRate)
+{
+	m_Weights += m_WeightsGradient * ( -1.0f * learningRate );
+	m_Biases += m_BiasesGradient * ( -1.0f * learningRate );
 }
 
 #endif // LAYERDENSE_HPP

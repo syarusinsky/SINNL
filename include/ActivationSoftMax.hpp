@@ -18,11 +18,11 @@ class ActivationSoftMax
 	public:
 		ActivationSoftMax();
 
-		Matrix<numBatches, numInputs> forwardPass (const Matrix<numBatches, numInputs>& in);
+		Matrix<numBatches, numInputs> forwardPass (const Matrix<numBatches, numInputs>& in) const;
 
         void backwardPass (const Matrix<numBatches, numInputs>& in, const Matrix<numBatches, numInputs>& gradient);
 
-        Matrix<numBatches, numInputs> getInputsGradient() { return m_InputsGradient; }
+        Matrix<numBatches, numInputs> getInputsGradient() const { return m_InputsGradient; }
 
     private:
         Matrix<numBatches, numInputs>   m_InputsGradient;
@@ -35,7 +35,7 @@ ActivationSoftMax<numBatches, numInputs>::ActivationSoftMax() :
 }
 
 template <unsigned int numBatches, unsigned int numInputs>
-Matrix<numBatches, numInputs> ActivationSoftMax<numBatches, numInputs>::forwardPass (const Matrix<numBatches, numInputs>& in)
+Matrix<numBatches, numInputs> ActivationSoftMax<numBatches, numInputs>::forwardPass (const Matrix<numBatches, numInputs>& in) const
 {
 	Matrix<numBatches, numInputs> matOut = in;
 

@@ -14,6 +14,9 @@
 #include <cmath>
 #include <limits>
 
+// TODO remove after testing
+#include <iostream>
+
 template <unsigned int numBatches, unsigned int numOutputs>
 Matrix<numBatches, numOutputs> getOneHotEncodedFromScalarTargets (const Matrix<numBatches, 1>& targets)
 {
@@ -36,16 +39,16 @@ class LossCategoricalCrossEntropy
         LossCategoricalCrossEntropy() : m_InputsGradient() {}
 
         // for one-hot encoded targets
-        float getLoss (const Matrix<numBatches, numOutputs>& outputs, const Matrix<numBatches, numOutputs>& targets);
+        float getLoss (const Matrix<numBatches, numOutputs>& outputs, const Matrix<numBatches, numOutputs>& targets) const;
         // for scalar targets
-        float getLoss (const Matrix<numBatches, numOutputs>& outputs, const Matrix<numBatches, 1>& targets);
+        float getLoss (const Matrix<numBatches, numOutputs>& outputs, const Matrix<numBatches, 1>& targets) const;
 
         // for one-hot encoded targets
         void backwardPass (const Matrix<numBatches, numOutputs>& gradient, const Matrix<numBatches, numOutputs>& targets);
         // for scalar targets
         void backwardPass (const Matrix<numBatches, numOutputs>& gradient, const Matrix<numBatches, 1>& targets);
 
-        Matrix<numBatches, numOutputs> getInputsGradient() { return m_InputsGradient; }
+        Matrix<numBatches, numOutputs> getInputsGradient() const { return m_InputsGradient; }
 
     private:
         Matrix<numBatches, numOutputs>  m_InputsGradient;
@@ -59,28 +62,28 @@ class LossCategoricalCrossEntropyWithActivationSoftMax
         LossCategoricalCrossEntropyWithActivationSoftMax() : m_LossCategoricalCrossEntropy(), m_ActivationSoftMax(), m_InputsGradient() {}
 
         // for one-hot encoded targets
-        float getLoss (const Matrix<numBatches, numOutputs>& outputs, const Matrix<numBatches, numOutputs>& targets) { m_LossCategoricalCrossEntropy.getLoss(outputs, targets); }
+        float getLoss (const Matrix<numBatches, numOutputs>& outputs, const Matrix<numBatches, numOutputs>& targets) const { return m_LossCategoricalCrossEntropy.getLoss(outputs, targets); }
         // for scalar targets
-        float getLoss (const Matrix<numBatches, numOutputs>& outputs, const Matrix<numBatches, 1>& targets) { m_LossCategoricalCrossEntropy.getLoss(outputs, targets); }
+        float getLoss (const Matrix<numBatches, numOutputs>& outputs, const Matrix<numBatches, 1>& targets) const { return m_LossCategoricalCrossEntropy.getLoss(outputs, targets); }
 
-        Matrix<numBatches, numOutputs> forwardPass (const Matrix<numBatches, numOutputs>& in) { return m_ActivationSoftMax.forwardPass( in ); }
+        Matrix<numBatches, numOutputs> forwardPass (const Matrix<numBatches, numOutputs>& in) const { return m_ActivationSoftMax.forwardPass( in ); }
 
         // for one-hot encoded targets
         void backwardPass (const Matrix<numBatches, numOutputs>& gradient, const Matrix<numBatches, numOutputs>& targets);
         // for scalar targets
         void backwardPass (const Matrix<numBatches, numOutputs>& gradient, const Matrix<numBatches, 1>& targets) { backwardPass(gradient, getOneHotEncodedFromScalarTargets<numBatches, numOutputs>(targets)); }
 
-        Matrix<numBatches, numOutputs> getInputsGradient() { return m_InputsGradient; }
+        Matrix<numBatches, numOutputs> getInputsGradient() const { return m_InputsGradient; }
 
     private:
         LossCategoricalCrossEntropy<numBatches, numOutputs>     m_LossCategoricalCrossEntropy;
-        ActivationSoftMax<numBatches, numOutputs>                m_ActivationSoftMax;
+        ActivationSoftMax<numBatches, numOutputs>               m_ActivationSoftMax;
 
         Matrix<numBatches, numOutputs>                          m_InputsGradient;
 };
 
 template <unsigned int numBatches, unsigned int numOutputs>
-float LossCategoricalCrossEntropy<numBatches, numOutputs>::getLoss(const Matrix<numBatches, numOutputs>& outputs, const Matrix<numBatches, numOutputs>& targets)
+float LossCategoricalCrossEntropy<numBatches, numOutputs>::getLoss(const Matrix<numBatches, numOutputs>& outputs, const Matrix<numBatches, numOutputs>& targets) const
 {
     Matrix<numOutputs, numBatches> targetsTransposed = targets.transpose();
     Matrix<numBatches, numBatches> result = matrixDotProduct<numBatches, numOutputs, numOutputs, numBatches>( outputs, targetsTransposed );
@@ -97,7 +100,7 @@ float LossCategoricalCrossEntropy<numBatches, numOutputs>::getLoss(const Matrix<
 
 
 template <unsigned int numBatches, unsigned int numOutputs>
-float LossCategoricalCrossEntropy<numBatches, numOutputs>::getLoss(const Matrix<numBatches, numOutputs>& outputs, const Matrix<numBatches, 1>& targets)
+float LossCategoricalCrossEntropy<numBatches, numOutputs>::getLoss(const Matrix<numBatches, numOutputs>& outputs, const Matrix<numBatches, 1>& targets) const
 {
     return getLoss( outputs, getOneHotEncodedFromScalarTargets<numBatches, numOutputs>(targets) );
 }
@@ -130,11 +133,7 @@ void LossCategoricalCrossEntropyWithActivationSoftMax<numBatches, numOutputs>::b
     {
         for ( unsigned int output = 0; output < numOutputs; output++ )
         {
-            if ( targets.at(batch, output) > 0.0f )
-            {
-                m_InputsGradient.at( batch, output ) -= 1.0f;
-            }
-
+            m_InputsGradient.at( batch, output ) -= ( 1.0f * targets.at(batch, output) );
             m_InputsGradient.at( batch, output ) *= ( 1.0f / numBatches );
         }
     }
