@@ -12,24 +12,41 @@
 #include <random>
 
 template <unsigned int numBatches, unsigned int numInputs, unsigned int numNeurons>
+struct LayerDensePartials
+{
+};
+
+template <unsigned int numBatches, unsigned int numInputs, unsigned int numNeurons>
 class LayerDense
 {
 	public:
 		LayerDense();
+		LayerDense(const Matrix<numInputs, numNeurons>& weights, const Matrix<numBatches, numNeurons>& biases);
 
 		Matrix<numBatches, numNeurons> forwardPass (const Matrix<numBatches, numInputs>& in);
+
+		void backwardPass (const Matrix<numBatches, numInputs>& in, const Matrix<numBatches, numNeurons>& gradient);
+
+		Matrix<numBatches, numInputs> getInputsGradient() { return m_InputsGradient; }
+		Matrix<numInputs, numNeurons> getWeightsGradient() { return m_WeightsGradient; }
+		Matrix<numBatches, numNeurons> getBiasesGradient() { return m_BiasesGradient; }
 
     private:
 		Matrix<numInputs, numNeurons> 		m_Weights;
 		Matrix<numBatches, numNeurons> 		m_Biases;
+
+		Matrix<numBatches, numInputs> 		m_InputsGradient;
+		Matrix<numInputs, numNeurons> 		m_WeightsGradient;
+		Matrix<numBatches, numNeurons> 		m_BiasesGradient;
 };
 
 template <unsigned int numBatches, unsigned int numInputs, unsigned int numNeurons>
 LayerDense<numBatches, numInputs, numNeurons>::LayerDense() :
-// 	m_Weights({ {{0.2f, 0.5f, -0.26f}, {0.8f, -0.91f, -0.27f}, {-0.5f, 0.26f, 0.17f}, {1.0f, -0.5f, 0.87f}} }),
-// 	m_Biases({ {{2.0f, 3.0f, 0.5f}, {2.0f, 3.0f, 0.5f}, {2.0f, 3.0f, 0.5f}} })
 	m_Weights(),
-	m_Biases()
+	m_Biases(),
+	m_InputsGradient(),
+	m_WeightsGradient(),
+	m_BiasesGradient()
 {
 	// generate random values for weights
 	std::random_device rd;
@@ -51,11 +68,43 @@ LayerDense<numBatches, numInputs, numNeurons>::LayerDense() :
 }
 
 template <unsigned int numBatches, unsigned int numInputs, unsigned int numNeurons>
+LayerDense<numBatches, numInputs, numNeurons>::LayerDense (const Matrix<numInputs, numNeurons>& weights, const Matrix<numBatches, numNeurons>& biases) :
+	m_Weights( weights ),
+	m_Biases( biases ),
+	m_InputsGradient(),
+	m_WeightsGradient(),
+	m_BiasesGradient()
+{
+}
+
+template <unsigned int numBatches, unsigned int numInputs, unsigned int numNeurons>
 Matrix<numBatches, numNeurons> LayerDense<numBatches, numInputs, numNeurons>::forwardPass (const Matrix<numBatches, numInputs>& in)
 {
 	Matrix<numBatches, numNeurons> matOut = matrixDotProduct( in, m_Weights ) + m_Biases;
 
 	return matOut;
+}
+
+
+template <unsigned int numBatches, unsigned int numInputs, unsigned int numNeurons>
+void LayerDense<numBatches, numInputs, numNeurons>::backwardPass (const Matrix<numBatches, numInputs>& in, const Matrix<numBatches, numNeurons>& gradient)
+{
+	m_InputsGradient = matrixDotProduct<numBatches, numNeurons, numNeurons, numInputs>( gradient, m_Weights.transpose() );
+	m_WeightsGradient = matrixDotProduct<numInputs, numBatches, numBatches, numNeurons>( in.transpose(), gradient ); 
+	Matrix<numBatches, numNeurons> biasesGradient;
+    for ( unsigned int batch = 0; batch < numBatches; batch++ )
+    {
+        float sum = 0.0f;
+        for ( unsigned int inputNum = 0; inputNum < numNeurons; inputNum++ )
+        {
+            sum += gradient.at( inputNum, batch );
+        }
+        for ( unsigned int inputNum = 0; inputNum < numNeurons; inputNum++ )
+        {
+            biasesGradient.at( batch, inputNum ) = sum;
+        }
+    }
+	m_BiasesGradient = biasesGradient;
 }
 
 #endif // LAYERDENSE_HPP
