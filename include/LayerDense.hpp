@@ -60,7 +60,7 @@ LayerDense<numBatches, numInputs, numNeurons>::LayerDense() :
 	// TODO should this be gaussian distribuition?
 	std::uniform_int_distribution<> distr( 0, maxVal );
 	constexpr float oneOverMaxVal = 1.0f / static_cast<float>( maxVal );
-	constexpr float minimizer = 0.3f;
+	constexpr float minimizer = 0.01f;
 
 	for ( unsigned int row = 0; row < numInputs; row++ )
 	{
@@ -97,26 +97,28 @@ void LayerDense<numBatches, numInputs, numNeurons>::backwardPass (const Matrix<n
 	m_InputsGradient = matrixDotProduct<numBatches, numNeurons, numNeurons, numInputs>( gradient, m_Weights.transpose() );
 	m_WeightsGradient = matrixDotProduct<numInputs, numBatches, numBatches, numNeurons>( in.transpose(), gradient ); 
 	Matrix<numBatches, numNeurons> biasesGradient;
-    for ( unsigned int batch = 0; batch < numBatches; batch++ )
-    {
-        float sum = 0.0f;
-        for ( unsigned int inputNum = 0; inputNum < numNeurons; inputNum++ )
-        {
-            sum += gradient.at( inputNum, batch );
-        }
-        for ( unsigned int inputNum = 0; inputNum < numNeurons; inputNum++ )
-        {
-            biasesGradient.at( batch, inputNum ) = sum;
-        }
-    }
+	for ( unsigned int inputNum = 0; inputNum < numNeurons; inputNum++ )
+	{
+		float sum = 0.0f;
+		for ( unsigned int batch = 0; batch < numBatches; batch++ )
+		{
+			sum += gradient.at( batch, inputNum );
+		}
+
+		for ( unsigned int batch = 0; batch < numBatches; batch++ )
+		{
+			biasesGradient.at( batch, inputNum ) = sum;
+		}
+	}
+
 	m_BiasesGradient = biasesGradient;
 }
 
 template <unsigned int numBatches, unsigned int numInputs, unsigned int numNeurons>
 void LayerDense<numBatches, numInputs, numNeurons>::updateLayer (float learningRate)
 {
-	m_Weights += m_WeightsGradient * ( -1.0f * learningRate );
-	m_Biases += m_BiasesGradient * ( -1.0f * learningRate );
+	m_Weights -= m_WeightsGradient * learningRate;
+	m_Biases -= m_BiasesGradient * learningRate;
 }
 
 #endif // LAYERDENSE_HPP

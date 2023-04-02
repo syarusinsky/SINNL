@@ -19,7 +19,7 @@ class ActivationReLU
 
 		Matrix<numBatches, numInputs> forwardPass (const Matrix<numBatches, numInputs>& in) const;
 
-        void backwardPass (const Matrix<numBatches, numInputs>& gradient);
+        void backwardPass (const Matrix<numBatches, numInputs>& in, const Matrix<numBatches, numInputs>& gradient);
 
         Matrix<numBatches, numInputs> getInputsGradient() const { return m_Gradient; }
 
@@ -49,7 +49,7 @@ Matrix<numBatches, numInputs> ActivationReLU<numBatches, numInputs>::forwardPass
 }
 
 template <unsigned int numBatches, unsigned int numInputs>
-void ActivationReLU<numBatches, numInputs>::backwardPass (const Matrix<numBatches, numInputs>& gradient)
+void ActivationReLU<numBatches, numInputs>::backwardPass (const Matrix<numBatches, numInputs>& in, const Matrix<numBatches, numInputs>& gradient)
 {
     m_Gradient = gradient;
 
@@ -57,7 +57,7 @@ void ActivationReLU<numBatches, numInputs>::backwardPass (const Matrix<numBatche
     {
         for ( unsigned int input = 0; input < numInputs; input++ )
         {
-            m_Gradient.at( batch, input ) = ( m_Gradient.at(batch, input) > 0.0f ) ? m_Gradient.at( batch, input ) : 0.0f;
+            m_Gradient.at( batch, input ) = ( in.at(batch, input) > 0.0f ) ? m_Gradient.at( batch, input ) : 0.0f;
         }
     }
 }

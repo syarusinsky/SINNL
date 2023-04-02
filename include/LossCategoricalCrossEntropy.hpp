@@ -14,9 +14,6 @@
 #include <cmath>
 #include <limits>
 
-// TODO remove after testing
-#include <iostream>
-
 template <unsigned int numBatches, unsigned int numOutputs>
 Matrix<numBatches, numOutputs> getOneHotEncodedFromScalarTargets (const Matrix<numBatches, 1>& targets)
 {
@@ -44,6 +41,11 @@ class LossCategoricalCrossEntropy
         float getLoss (const Matrix<numBatches, numOutputs>& outputs, const Matrix<numBatches, 1>& targets) const;
 
         // for one-hot encoded targets
+        float getAccuracy (const Matrix<numBatches, numOutputs>& outputs, const Matrix<numBatches, numOutputs>& targets) const;
+        // for scalar targets
+        float getAccuracy (const Matrix<numBatches, numOutputs>& outputs, const Matrix<numBatches, 1>& targets) const;
+
+        // for one-hot encoded targets
         void backwardPass (const Matrix<numBatches, numOutputs>& gradient, const Matrix<numBatches, numOutputs>& targets);
         // for scalar targets
         void backwardPass (const Matrix<numBatches, numOutputs>& gradient, const Matrix<numBatches, 1>& targets);
@@ -66,6 +68,11 @@ class LossCategoricalCrossEntropyWithActivationSoftMax
         // for scalar targets
         float getLoss (const Matrix<numBatches, numOutputs>& outputs, const Matrix<numBatches, 1>& targets) const { return m_LossCategoricalCrossEntropy.getLoss(outputs, targets); }
 
+        // for one-hot encoded targets
+        float getAccuracy (const Matrix<numBatches, numOutputs>& outputs, const Matrix<numBatches, numOutputs>& targets) const { return m_LossCategoricalCrossEntropy.getAccuracy(outputs, targets); }
+        // for scalar targets
+        float getAccuracy (const Matrix<numBatches, numOutputs>& outputs, const Matrix<numBatches, 1>& targets) const { return m_LossCategoricalCrossEntropy.getAccuracy(outputs, targets); }
+
         Matrix<numBatches, numOutputs> forwardPass (const Matrix<numBatches, numOutputs>& in) const { return m_ActivationSoftMax.forwardPass( in ); }
 
         // for one-hot encoded targets
@@ -83,7 +90,7 @@ class LossCategoricalCrossEntropyWithActivationSoftMax
 };
 
 template <unsigned int numBatches, unsigned int numOutputs>
-float LossCategoricalCrossEntropy<numBatches, numOutputs>::getLoss(const Matrix<numBatches, numOutputs>& outputs, const Matrix<numBatches, numOutputs>& targets) const
+float LossCategoricalCrossEntropy<numBatches, numOutputs>::getLoss (const Matrix<numBatches, numOutputs>& outputs, const Matrix<numBatches, numOutputs>& targets) const
 {
     Matrix<numOutputs, numBatches> targetsTransposed = targets.transpose();
     Matrix<numBatches, numBatches> result = matrixDotProduct<numBatches, numOutputs, numOutputs, numBatches>( outputs, targetsTransposed );
@@ -100,9 +107,38 @@ float LossCategoricalCrossEntropy<numBatches, numOutputs>::getLoss(const Matrix<
 
 
 template <unsigned int numBatches, unsigned int numOutputs>
-float LossCategoricalCrossEntropy<numBatches, numOutputs>::getLoss(const Matrix<numBatches, numOutputs>& outputs, const Matrix<numBatches, 1>& targets) const
+float LossCategoricalCrossEntropy<numBatches, numOutputs>::getLoss (const Matrix<numBatches, numOutputs>& outputs, const Matrix<numBatches, 1>& targets) const
 {
     return getLoss( outputs, getOneHotEncodedFromScalarTargets<numBatches, numOutputs>(targets) );
+}
+
+template <unsigned int numBatches, unsigned int numOutputs>
+float LossCategoricalCrossEntropy<numBatches, numOutputs>::getAccuracy (const Matrix<numBatches, numOutputs>& outputs, const Matrix<numBatches, numOutputs>& targets) const
+{
+    float sum = 0.0f;
+    for ( unsigned int batch = 0; batch < numBatches; batch++ )
+    {
+        unsigned int index = 0;
+        for ( unsigned int output = 0; output < numOutputs; output++ )
+        {
+            if ( outputs.at(batch, output) > outputs.at(batch, index) )
+            {
+                index = output;
+            }
+        }
+
+        sum += ( targets.at(batch, index) == 1.0f ) ? 1.0f : 0.0f;
+    }
+
+    return sum * ( 1.0f / numBatches );
+}
+
+template <unsigned int numBatches, unsigned int numOutputs>
+float LossCategoricalCrossEntropy<numBatches, numOutputs>::getAccuracy (const Matrix<numBatches, numOutputs>& outputs, const Matrix<numBatches, 1>& targets) const
+{
+    Matrix<numBatches, numOutputs> oneHot = getOneHotEncodedFromScalarTargets<numBatches, numOutputs>( targets );
+
+    return getAccuracy( outputs, oneHot );
 }
 
 template <unsigned int numBatches, unsigned int numOutputs>
