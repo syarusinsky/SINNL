@@ -27,7 +27,7 @@ class LayerDense
 
 		void backwardPass (const Matrix<numBatches, numInputs>& in, const Matrix<numBatches, numNeurons>& gradient);
 
-		void updateLayer (float learningRate);
+		void updateLayer (float learningRate, float momemtum = 0.0f);
 
 		Matrix<numBatches, numInputs> getInputsGradient() const { return m_InputsGradient; }
 		Matrix<numInputs, numNeurons> getWeightsGradient() const { return m_WeightsGradient; }
@@ -43,6 +43,9 @@ class LayerDense
 		Matrix<numBatches, numInputs> 		m_InputsGradient;
 		Matrix<numInputs, numNeurons> 		m_WeightsGradient;
 		Matrix<numBatches, numNeurons> 		m_BiasesGradient;
+
+		Matrix<numInputs, numNeurons> 		m_WeightsMomentum;
+		Matrix<numBatches, numNeurons> 		m_BiasesMomentum;
 };
 
 template <unsigned int numBatches, unsigned int numInputs, unsigned int numNeurons>
@@ -51,7 +54,9 @@ LayerDense<numBatches, numInputs, numNeurons>::LayerDense() :
 	m_Biases(),
 	m_InputsGradient(),
 	m_WeightsGradient(),
-	m_BiasesGradient()
+	m_BiasesGradient(),
+	m_WeightsMomentum(),
+	m_BiasesMomentum()
 {
 	// generate random values for weights
 	std::random_device rd;
@@ -78,7 +83,9 @@ LayerDense<numBatches, numInputs, numNeurons>::LayerDense (const Matrix<numInput
 	m_Biases( biases ),
 	m_InputsGradient(),
 	m_WeightsGradient(),
-	m_BiasesGradient()
+	m_BiasesGradient(),
+	m_WeightsMomentum(),
+	m_BiasesMomentum()
 {
 }
 
@@ -115,10 +122,12 @@ void LayerDense<numBatches, numInputs, numNeurons>::backwardPass (const Matrix<n
 }
 
 template <unsigned int numBatches, unsigned int numInputs, unsigned int numNeurons>
-void LayerDense<numBatches, numInputs, numNeurons>::updateLayer (float learningRate)
+void LayerDense<numBatches, numInputs, numNeurons>::updateLayer (float learningRate, float momentum)
 {
-	m_Weights -= m_WeightsGradient * learningRate;
-	m_Biases -= m_BiasesGradient * learningRate;
+	m_WeightsMomentum = ( m_WeightsMomentum * momentum ) - ( m_WeightsGradient * learningRate );
+	m_BiasesMomentum = ( m_BiasesMomentum * momentum ) - ( m_BiasesGradient * learningRate );
+	m_Weights += m_WeightsMomentum;
+	m_Biases += m_BiasesMomentum;
 }
 
 #endif // LAYERDENSE_HPP
