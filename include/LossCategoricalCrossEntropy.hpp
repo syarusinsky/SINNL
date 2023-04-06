@@ -8,6 +8,7 @@
 
 #define _USE_MATH_DEFINES
 
+#include "LossBase.hpp"
 #include "ActivationSoftMax.hpp"
 #include "Matrix.hpp"
 
@@ -30,23 +31,23 @@ Matrix<numBatches, numOutputs> getOneHotEncodedFromScalarTargets (const Matrix<n
 }
 
 template <unsigned int numBatches, unsigned int numOutputs>
-class LossCategoricalCrossEntropy
+class LossCategoricalCrossEntropy : public LossBase<numBatches, numOutputs>
 {
     public:
         LossCategoricalCrossEntropy() : m_InputsGradient() {}
 
         // for one-hot encoded targets
-        float getLoss (const Matrix<numBatches, numOutputs>& outputs, const Matrix<numBatches, numOutputs>& targets) const;
+        float getLoss (const Matrix<numBatches, numOutputs>& outputs, const Matrix<numBatches, numOutputs>& targets) const override;
         // for scalar targets
         float getLoss (const Matrix<numBatches, numOutputs>& outputs, const Matrix<numBatches, 1>& targets) const;
 
         // for one-hot encoded targets
-        float getAccuracy (const Matrix<numBatches, numOutputs>& outputs, const Matrix<numBatches, numOutputs>& targets) const;
+        float getAccuracy (const Matrix<numBatches, numOutputs>& outputs, const Matrix<numBatches, numOutputs>& targets) const override;
         // for scalar targets
         float getAccuracy (const Matrix<numBatches, numOutputs>& outputs, const Matrix<numBatches, 1>& targets) const;
 
         // for one-hot encoded targets
-        void backwardPass (const Matrix<numBatches, numOutputs>& gradient, const Matrix<numBatches, numOutputs>& targets);
+        void backwardPass (const Matrix<numBatches, numOutputs>& gradient, const Matrix<numBatches, numOutputs>& targets) override;
         // for scalar targets
         void backwardPass (const Matrix<numBatches, numOutputs>& gradient, const Matrix<numBatches, 1>& targets);
 
