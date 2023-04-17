@@ -29,7 +29,8 @@ class LayerDense
 
 		void backwardPass (const Matrix<numBatches, numInputs>& in, const Matrix<numBatches, numNeurons>& gradient);
 
-		void updateLayer (float learningRate, float momemtum = 0.0f);
+		void updateLayerSGDM (float learningRate, float momemtum);
+		void updateLayerAdam (float learningRate, unsigned int iterations, float epsilon, float beta1, float beta2);
 
 		Matrix<numBatches, numInputs> getInputsGradient() const { return m_InputsGradient; }
 		Matrix<numInputs, numNeurons> getWeightsGradient() const { return m_WeightsGradient; }
@@ -51,6 +52,9 @@ class LayerDense
 		Matrix<numInputs, numNeurons> 		m_WeightsMomentum;
 		Matrix<numBatches, numNeurons> 		m_BiasesMomentum;
 
+		Matrix<numInputs, numNeurons> 		m_WeightsCache;
+		Matrix<numBatches, numNeurons> 		m_BiasesCache;
+
 		float 								m_WeightL1RegularizationStrength;
 		float 								m_BiasL1RegularizationStrength;
 		float 								m_WeightL2RegularizationStrength;
@@ -67,6 +71,8 @@ LayerDense<numBatches, numInputs, numNeurons>::LayerDense (float weightL1Regular
 	m_BiasesGradient(),
 	m_WeightsMomentum(),
 	m_BiasesMomentum(),
+	m_WeightsCache(),
+	m_BiasesCache(),
 	m_WeightL1RegularizationStrength( weightL1RegularizationStrength ),
 	m_BiasL1RegularizationStrength( biasL1RegularizationStrength ),
 	m_WeightL2RegularizationStrength( weightL2RegularizationStrength ),
@@ -99,6 +105,8 @@ LayerDense<numBatches, numInputs, numNeurons>::LayerDense (const Matrix<numInput
 	m_BiasesGradient(),
 	m_WeightsMomentum(),
 	m_BiasesMomentum(),
+	m_WeightsCache(),
+	m_BiasesCache(),
 	m_WeightL1RegularizationStrength( weightL1RegularizationStrength ),
 	m_BiasL1RegularizationStrength( biasL1RegularizationStrength ),
 	m_WeightL2RegularizationStrength( weightL2RegularizationStrength ),
@@ -175,7 +183,7 @@ void LayerDense<numBatches, numInputs, numNeurons>::backwardPass (const Matrix<n
 }
 
 template <unsigned int numBatches, unsigned int numInputs, unsigned int numNeurons>
-void LayerDense<numBatches, numInputs, numNeurons>::updateLayer (float learningRate, float momentum)
+void LayerDense<numBatches, numInputs, numNeurons>::updateLayerSGDM (float learningRate, float momentum)
 {
 	m_WeightsMomentum = ( m_WeightsMomentum * momentum ) - ( m_WeightsGradient * learningRate );
 	m_BiasesMomentum = ( m_BiasesMomentum * momentum ) - ( m_BiasesGradient * learningRate );
@@ -183,6 +191,63 @@ void LayerDense<numBatches, numInputs, numNeurons>::updateLayer (float learningR
 	m_Biases += m_BiasesMomentum;
 }
 
+template <unsigned int numBatches, unsigned int numInputs, unsigned int numNeurons>
+void LayerDense<numBatches, numInputs, numNeurons>::updateLayerAdam (float learningRate, unsigned int iterations, float epsilon, float beta1, float beta2)
+{
+	const float beta1Offset = ( 1.0f - beta1 );
+	m_WeightsMomentum = ( m_WeightsMomentum * beta1 ) + ( m_WeightsGradient * beta1Offset );
+	m_BiasesMomentum = ( m_BiasesMomentum * beta1 ) + ( m_BiasesGradient * beta1Offset );
+
+	const float correction1 = ( 1.0f / (1.0f - std::pow(beta1, iterations + 1)) );
+	Matrix<numInputs, numNeurons> weightsMomentumCorrected = m_WeightsMomentum * correction1;
+	Matrix<numBatches, numNeurons> biasesMomentumCorrected = m_BiasesMomentum * correction1;
+
+	Matrix<numInputs, numNeurons> weightsGradientSquared;
+	for ( unsigned int row = 0; row < numInputs; row++ )
+	{
+		for ( unsigned int col = 0; col < numNeurons; col++ )
+		{
+			weightsGradientSquared.at( row, col ) = m_WeightsGradient.at( row, col ) * m_WeightsGradient.at( row, col );
+		}
+	}
+	Matrix<numBatches, numNeurons> biasesGradientSquared;
+	for ( unsigned int row = 0; row < numBatches; row++ )
+	{
+		for ( unsigned int col = 0; col < numNeurons; col++ )
+		{
+			biasesGradientSquared.at( row, col ) = m_BiasesGradient.at( row, col ) * m_BiasesGradient.at( row, col );
+		}
+	}
+	const float beta2Offset = ( 1.0f - beta2 );
+	m_WeightsCache = ( m_WeightsCache * beta2 ) + ( weightsGradientSquared * beta2Offset );
+	m_BiasesCache = ( m_BiasesCache * beta2 ) + ( biasesGradientSquared * beta2Offset );
+
+	const float correction2 = ( 1.0f / (1.0f - std::pow(beta2, iterations + 1)) );
+	Matrix<numInputs, numNeurons> weightsCacheCorrected = m_WeightsCache * correction2;
+	Matrix<numBatches, numNeurons> biasesCacheCorrected = m_BiasesCache * correction2;
+
+	Matrix<numInputs, numNeurons> weightsOffset;
+	for ( unsigned int row = 0; row < numInputs; row++ )
+	{
+		for ( unsigned int col = 0; col < numNeurons; col++ )
+		{
+			weightsOffset.at( row, col ) = ( weightsMomentumCorrected.at(row, col) * learningRate * -1.0f )
+											/ ( (std::sqrt(weightsCacheCorrected.at(row, col)) + epsilon) );
+		}
+	}
+	Matrix<numBatches, numNeurons> biasesOffset;
+	for ( unsigned int row = 0; row < numBatches; row++ )
+	{
+		for ( unsigned int col = 0; col < numNeurons; col++ )
+		{
+			biasesOffset.at( row, col ) = ( biasesMomentumCorrected.at(row, col) * learningRate * -1.0f )
+											/ ( (std::sqrt(biasesCacheCorrected.at(row, col)) + epsilon) );
+		}
+	}
+
+	m_Weights += weightsOffset; 
+	m_Biases += biasesOffset;
+}
 
 template <unsigned int numBatches, unsigned int numInputs, unsigned int numNeurons>
 float LayerDense<numBatches, numInputs, numNeurons>::getRegularizationLoss() const

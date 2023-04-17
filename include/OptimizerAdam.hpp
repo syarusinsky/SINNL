@@ -1,24 +1,26 @@
-#ifndef OPTIMIZERSTOCHASTICGRADIENTDESCENT_HPP
-#define OPTIMIZERSTOCHASTICGRADIENTDESCENT_HPP
+#ifndef OPTIMIZERADAM_HPP
+#define OPTIMIZERADAM_HPP
 
 /**************************************************************************
- * The OptimizerStochasticGradientDescent class implements optimization
- * using stochastic gradient descent.
+ * The OptimizerAdam class implements optimization using adaptive
+ * momentum.
 **************************************************************************/
 
 #define _USE_MATH_DEFINES
 
 #include "LayerDense.hpp"
 
-class OptimizerStochasticGradientDescent
+class OptimizerAdam
 {
     public:
-        OptimizerStochasticGradientDescent (float learningRate, float decayRate = 0.0f, float momentum = 0.0f) : 
+        OptimizerAdam (float learningRate, float decayRate = 0.0f, float epsilon = 1e-7f, float beta1 = 0.9f, float beta2 = 0.999f) : 
             m_LearningRate( learningRate ),
             m_DecayRate( decayRate ),
             m_DecayedLearningRate( learningRate ),
             m_Iterations( 0 ),
-            m_Momentum( momentum ) {}
+            m_Epsilon( epsilon ),
+            m_Beta1( beta1 ),
+            m_Beta2( beta2 ) {}
 
         template<unsigned int numBatches, unsigned int numInputs, unsigned int numNeurons>
         void updateLayer (LayerDense<numBatches, numInputs, numNeurons>& layer);
@@ -33,13 +35,15 @@ class OptimizerStochasticGradientDescent
         float           m_DecayedLearningRate;
         unsigned int    m_Iterations;
 
-        float           m_Momentum;
+        float           m_Epsilon;
+        float           m_Beta1;
+        float           m_Beta2;
 };
 
 template<unsigned int numBatches, unsigned int numInputs, unsigned int numNeurons>
-void OptimizerStochasticGradientDescent::updateLayer (LayerDense<numBatches, numInputs, numNeurons>& layer)
+void OptimizerAdam::updateLayer (LayerDense<numBatches, numInputs, numNeurons>& layer)
 {
-    layer.updateLayerSGDM( m_DecayedLearningRate, m_Momentum );
+    layer.updateLayerAdam( m_DecayedLearningRate, m_Iterations, m_Epsilon, m_Beta1, m_Beta2 );
 }
 
-#endif // OPTIMIZERSTOCHASTICGRADIENTDESCENT_HPP
+#endif // OPTIMIZERADAM_HPP
