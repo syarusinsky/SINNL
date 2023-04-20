@@ -21,7 +21,7 @@ class LayerDense
 {
 	public:
 		LayerDense(float weightL1RegularizationStrength = 0.0f, float biasL1RegularizationStrength = 0.0f,
-					float weightL2RegularizationStrength = 0.0f, float biasL2RegularizationStrength = 0.0f);
+					float weightL2RegularizationStrength = 0.0f, float biasL2RegularizationStrength = 0.0f, float initWeightsMultiplier = 0.01f);
 		LayerDense(const Matrix<numInputs, numNeurons>& weights, const Matrix<numBatches, numNeurons>& biases, float weightL1RegularizationStrength = 0.0f,
 					float biasL1RegularizationStrength = 0.0f, float weightL2RegularizationStrength = 0.0f, float biasL2RegularizationStrength = 0.0f);
 
@@ -63,7 +63,7 @@ class LayerDense
 
 template <unsigned int numBatches, unsigned int numInputs, unsigned int numNeurons>
 LayerDense<numBatches, numInputs, numNeurons>::LayerDense (float weightL1RegularizationStrength, float biasL1RegularizationStrength,
-					float weightL2RegularizationStrength, float biasL2RegularizationStrength) :
+					float weightL2RegularizationStrength, float biasL2RegularizationStrength, float initWeightsMultiplier) :
 	m_Weights(),
 	m_Biases(),
 	m_InputsGradient(),
@@ -83,7 +83,7 @@ LayerDense<numBatches, numInputs, numNeurons>::LayerDense (float weightL1Regular
 	std::mt19937 gen( rd() );
 	constexpr int maxVal = 100000;
 	std::normal_distribution<> distr( 0.0f, 0.25f );
-	constexpr float minimizer = 0.01f;
+	float minimizer = initWeightsMultiplier;
 
 	for ( unsigned int row = 0; row < numInputs; row++ )
 	{
@@ -117,7 +117,7 @@ LayerDense<numBatches, numInputs, numNeurons>::LayerDense (const Matrix<numInput
 template <unsigned int numBatches, unsigned int numInputs, unsigned int numNeurons>
 Matrix<numBatches, numNeurons> LayerDense<numBatches, numInputs, numNeurons>::forwardPass (const Matrix<numBatches, numInputs>& in) const
 {
-	Matrix<numBatches, numNeurons> matOut = matrixDotProduct( in, m_Weights ) + m_Biases;
+	Matrix<numBatches, numNeurons> matOut = matrixDotProduct<numBatches, numInputs, numInputs, numNeurons>( in, m_Weights ) + m_Biases;
 
 	return matOut;
 }
